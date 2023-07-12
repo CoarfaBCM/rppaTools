@@ -19,9 +19,37 @@ rppaTool <- function(inputFile,
     mygroups <- data.frame(colnames(mydf)[-c(1:5)], t(mydf[1,-c(1:5)]))
     names(mygroups) <- c("ID", "Sample")
     
+    tempIDs <- mydf$X1[-1]
     mydf <- data.frame(mydf[-1,-c(1,3,5)], row.names = NULL, check.rows = F, check.names = F)
     mydf[,1] <- gsub("_R_V","",mydf[,1])
     mydf[,2] <- unname(sapply(mydf[,2], function(x){strsplit(x, ",")[[1]][1]}))
+    
+    # Function to add ID to duplicate names
+    makeUniqueNames <- function(IDs, names) {
+      unique_names <- character(length(names))  # Initialize a vector to store unique names
+      
+      # Store the indices of duplicates
+      duplicate_indices <- which(duplicated(names))
+      
+      # Iterate over each name
+      for (i in seq_along(names)) {
+        # Check if the name is a duplicate
+        if (i %in% duplicate_indices) {
+          # Find the index of the first instance of the current name
+          first_instance_index <- min(which(names == names[i]))
+          
+          # Append the specific ID to both the first instance and the duplicates
+          unique_names[first_instance_index] <- paste(names[first_instance_index], IDs[first_instance_index], sep = "_")
+          unique_names[i] <- paste(names[i], IDs[i], sep = "_")
+        } else {
+          unique_names[i] <- names[i]  # Name is unique, no need to modify it
+        }
+      }
+      
+      return(unique_names)
+    }
+    
+    mydf$AB_name <- makeUniqueNames(IDs = tempIDs, names = mydf$AB_name)
     
     mydf[,-c(1,2)] <- sapply(mydf[,-c(1,2)], as.numeric)
     mydf[is.na(mydf)] <- 1
