@@ -53,7 +53,17 @@ readOneGpr <- function(input_file) {
   if(length(new.packages)>0) {install.packages(new.packages)} else {lapply(list.of.packages, require, character.only = TRUE)}
   
   if((file_path_sans_ext(basename(input_file)) == file_path_sans_ext(basename(tiff_file))) && (file_path_sans_ext(basename(input_file)) == file_path_sans_ext(basename(jpeg_file)))) {
-    consistency <- "TRUE"
+    if (grepl("protein", input_file, ignore.case = T)) {
+      temp.list <- unlist(strsplit(basename(input_file),"_"))
+      temp.idx <- which(grepl("protein",temp.list,ignore.case = T))
+      if (gsub("[^0-9]", "",temp.list[temp.idx-1]) == gsub("[^0-9]", "",temp.list[temp.idx+1])) {
+        consistency <- "TRUE"
+      } else { 
+        consistency <- "FALSE (protein name and slide number not consistent)"
+      }
+    } else {consistency <- "TRUE"}
+  } else { 
+    consistency <- "FALSE (input, tiff and jpeg file names not matching)"
   }
   
   num_lines <- length(readLines(input_file))
@@ -64,7 +74,7 @@ readOneGpr <- function(input_file) {
 }
 
 # Main function
-gprConsistencyCheck <- function(input_path,
+gprConsistencyCheck <- function(input_path = ".",
                                 out_suffix = NULL) {
   finaldf <- NULL
   for (myfile in list.files(input_path,pattern = ".gpr",full.names = T,recursive = T)) {
@@ -77,3 +87,5 @@ gprConsistencyCheck <- function(input_path,
   
   write.table(finaldf, outFileName, quote = F, sep = "\t", row.names = F, col.names = T)
 }
+
+gprConsistencyCheck()
