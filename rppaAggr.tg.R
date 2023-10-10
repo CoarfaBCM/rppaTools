@@ -1,7 +1,7 @@
 rppaTool <- function(inputFile,
                      outputFile,
                      cv_cutoff = 0.25,
-                     sampleIDRow = 2,
+                     sampleIDRow = 1,
                      replacement = NULL) {
   library(readxl)
   library(openxlsx)
@@ -15,9 +15,8 @@ rppaTool <- function(inputFile,
                        sampleIDRow,
                        replacement) {
     mydf <- read.xlsx(inputFile, sheet = sheetName)
-    
-    mygroups <- data.frame(colnames(mydf)[-c(1:5)], t(mydf[1,-c(1:5)]))
-    names(mygroups) <- c("ID", "Sample")
+    mygroups <- data.frame(ID=unname(sapply(colnames(mydf)[-c(1:5)], function(x){strsplit(x,"[.]")[[1]][1]})),
+                           Sample=t(mydf[1,-c(1:5)]))
     
     tempIDs <- mydf$X1[-1]
     mydf <- data.frame(mydf[-1,-c(1,3,5)], row.names = NULL, check.rows = F, check.names = F)
@@ -54,7 +53,7 @@ rppaTool <- function(inputFile,
     mydf[,-c(1,2)] <- sapply(mydf[,-c(1,2)], as.numeric)
     mydf[is.na(mydf)] <- 1
     
-    tempdf <- data.frame(Sample = mygroups$Sample, t(data.frame(mydf[,-2], row.names = 1, check.rows = F, check.names = F)), check.names = F, check.rows = F)
+    tempdf <- data.frame(Sample = mygroups[,sampleIDRow], t(data.frame(mydf[,-2], row.names = 1, check.rows = F, check.names = F)), check.names = F, check.rows = F)
     newdf <- aggregate(. ~ Sample, data = tempdf, FUN = median)
     cvdf <- aggregate(. ~ Sample, data = tempdf, FUN = function(x){sd(x)/mean(x)})
     cvdf.1 <- cvdf[,-1]
@@ -64,15 +63,15 @@ rppaTool <- function(inputFile,
       newdf[,-1] <- newdf.1
     }
     
-    if (sampleIDRow == 1) {
-      uniqueNames <- data.frame(ID = unname(sapply(mygroups$ID, function(x){strsplit(x,"[.]")[[1]][1]})),
-                                sample = mygroups$Sample)
-      uniqueNames <- uniqueNames[!duplicated(uniqueNames$sample),]
-      uniqueNames <- uniqueNames[match(newdf$Sample, uniqueNames$sample),]
-      if (identical(newdf$Sample, uniqueNames$sample)) {
-        newdf$Sample <- uniqueNames$ID 
-      }
-    }
+    # if (sampleIDRow == 1) {
+    #   uniqueNames <- data.frame(ID = unname(sapply(mygroups$ID, function(x){strsplit(x,"[.]")[[1]][1]})),
+    #                             sample = mygroups$Sample)
+    #   uniqueNames <- uniqueNames[!duplicated(uniqueNames$sample),]
+    #   uniqueNames <- uniqueNames[match(newdf$Sample, uniqueNames$sample),]
+    #   if (identical(newdf$Sample, uniqueNames$sample)) {
+    #     newdf$Sample <- uniqueNames$ID 
+    #   }
+    # }
     
     # write.xlsx(list(rppa = newdf), paste0(outdir, "/aggregate_data.xlsx"), rowNames = F) 
     newdf <- data.frame(newdf, row.names = 1, check.rows = F, check.names = F)
@@ -88,7 +87,7 @@ rppaTool <- function(inputFile,
              sheet = paste0(sheetName,"_Median"),
              style = createStyle(numFmt = "0.00"),
              cols = 3:ncol(finaldf.cv),
-             rows = 2:nrow(finaldf.cv),
+             rows = 2:(nrow(finaldf.cv)+1),
              gridExpand = T)
     
     addWorksheet(wb,paste0(sheetName,"_CV"))
@@ -97,14 +96,14 @@ rppaTool <- function(inputFile,
     conditionalFormatting(wb,
                           paste0(sheetName,"_CV"),
                           cols = 3:ncol(finaldf.cv),
-                          rows = 2:nrow(finaldf.cv),
+                          rows = 2:(nrow(finaldf.cv)+1),
                           rule = paste0(">",cv_cutoff),
                           style = mystyle)
     addStyle(wb = wb,
              sheet = paste0(sheetName,"_CV"),
              style = createStyle(numFmt = "PERCENTAGE"),
              cols = 3:ncol(finaldf.cv),
-             rows = 2:nrow(finaldf.cv),
+             rows = 2:(nrow(finaldf.cv)+1),
              gridExpand = T)
     
     return(wb)
@@ -134,12 +133,15 @@ runRppa <- function(inputDir = ".") {
                          pattern = "_final_report.xlsx",
                          full.names = T,
                          recursive = T,
-                         include.dirs = T)
+                         include.dirs = T,
+                         all.files = F)
   for (i in seq_along(allfiles)) {
+    print(cat("##### START PROCESSING:", allfiles[i],"#####\n"))
     inputFile <- allfiles[i]
     outputFile <- gsub("_final_report.xlsx","_final_report-complete.xlsx",inputFile)
     rppaTool(inputFile = inputFile,
              outputFile = outputFile)
+    print(cat("##### END PROCESSING:", allfiles[i],"#####\n\n"))
   }
 }
 
