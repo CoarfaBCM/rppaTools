@@ -111,16 +111,17 @@ rppaTool <- function(inputFile,
                     sampleIDRow = sampleIDRow,
                     replacement = replacement)
   }
-  tempdf.0 <- readWorkbook(wb1, sheet = "Norm_Median", rowNames = T)
+  
+  tempdf <- readWorkbook(wb1, sheet = "Norm_Median", rowNames = T)
   
   ab_file <- "~/Box/gitrepos/rppaTool/data/RPPA0054_Antibody_list-clean.xlsx"
   new.names <- excel_sheets(ab_file)
   
   for (idx in seq_along(new.names)) {
     ab_list <- read.xlsx(ab_file, sheet = new.names[idx], rowNames = T)
-    keep <- intersect(rownames(ab_list), rownames(tempdf.0))
+    keep <- intersect(rownames(ab_list), rownames(tempdf))
     
-    df.new <- tempdf.0[keep,]
+    df.new <- tempdf[keep,]
     df.new <- data.frame(AB_ID=as.numeric(rownames(df.new)),
                          df.new,
                          check.rows = F,
