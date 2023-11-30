@@ -16,15 +16,21 @@ rppaTool <- function(inputFile,
                        replacement) {
     mydf <- read.xlsx(inputFile, sheet = sheetName)
     
-    # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
-    mydf[,c(1:3)] <- apply(mydf[,c(1:3)], 2, trimws)
-    
     mygroups <- data.frame(ID=unname(sapply(colnames(mydf)[-c(1:5)], function(x){strsplit(x,"[.]")[[1]][1]})),
                            Sample=t(mydf[1,-c(1:5)]))
     
     mydf <- data.frame(mydf[-1,-c(3,5)], row.names = NULL, check.rows = F, check.names = F)
-    mydf[,2] <- gsub("_R_V","",mydf[,2])
-    mydf[,3] <- unname(sapply(mydf[,3], function(x){strsplit(x, ",")[[1]][1]}))
+    
+    # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+    mydf[,c(1:3)] <- apply(mydf[,c(1:3)], 2, trimws)
+    
+    originSpecies <- rep("",nrow(mydf))
+    originSpecies[grepl("_R_V", mydf$AB_name)] <- "rabbit"
+    originSpecies[grepl("_M_V", mydf$AB_name)] <- "mouse"
+    
+    mydf$AB_name <- gsub("_R_V","",mydf$AB_name)
+    mydf$AB_name <- gsub("_M_V","",mydf$AB_name)
+    mydf$Gene_ID <- unname(sapply(mydf$Gene_ID, function(x){strsplit(x, ",")[[1]][1]}))
     
     # Function to add ID to duplicate names
     makeUniqueNames <- function(IDs, names) {
@@ -53,8 +59,9 @@ rppaTool <- function(inputFile,
     
     mydf$AB_name <- makeUniqueNames(IDs = mydf$X1, names = mydf$AB_name)
     
-    mydf[,-c(1,2,3)] <- sapply(mydf[,-c(1,2,3)], as.numeric)
-    mydf[is.na(mydf)] <- 1
+    mydf[,-c(1:3)] <- sapply(mydf[,-c(1:3)], as.numeric)
+    # mydf[is.na(mydf)] <- 1
+    mydf[,-c(1:3)][is.na(mydf[,-c(1:3)])] <- 1
     
     tempdf <- data.frame(Sample = mygroups[,sampleIDRow], t(data.frame(mydf[,-c(1,3)], row.names = 1, check.rows = F, check.names = F)), check.names = F, check.rows = F)
     newdf <- aggregate(. ~ Sample, data = tempdf, FUN = median)
@@ -64,8 +71,8 @@ rppaTool <- function(inputFile,
     newdf <- data.frame(newdf, row.names = 1, check.rows = F, check.names = F)
     rownames(cvdf.1) <- rownames(newdf)
     
-    finaldf <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), GeneSymbol = mydf[,3], t(newdf), check.rows = F, check.names = F)
-    finaldf.cv <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), GeneSymbol = mydf[,3], t(cvdf.1), check.rows = F, check.names = F)
+    finaldf <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), OriginSpecies = originSpecies, GeneSymbol = mydf[,3], t(newdf), check.rows = F, check.names = F)
+    finaldf.cv <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), OriginSpecies = originSpecies, GeneSymbol = mydf[,3], t(cvdf.1), check.rows = F, check.names = F)
     # write.xlsx(list(rppa = finaldf), paste0(outdir, "/full_aggregate_data.xlsx"), rowNames = F)
     
     addWorksheet(wb,paste0(sheetName,"_Median"))
@@ -73,7 +80,7 @@ rppaTool <- function(inputFile,
     addStyle(wb = wb,
              sheet = paste0(sheetName,"_Median"),
              style = createStyle(numFmt = "0.00"),
-             cols = 4:ncol(finaldf.cv),
+             cols = 5:ncol(finaldf.cv),
              rows = 2:(nrow(finaldf.cv)+1),
              gridExpand = T)
     
@@ -82,14 +89,14 @@ rppaTool <- function(inputFile,
     mystyle <- createStyle(fontColour = "#000000", bgFill = "#FFFF00")
     conditionalFormatting(wb,
                           paste0(sheetName,"_CV"),
-                          cols = 4:ncol(finaldf.cv),
+                          cols = 5:ncol(finaldf.cv),
                           rows = 2:(nrow(finaldf.cv)+1),
                           rule = paste0(">",cv_cutoff),
                           style = mystyle)
     addStyle(wb = wb,
              sheet = paste0(sheetName,"_CV"),
              style = createStyle(numFmt = "PERCENTAGE"),
-             cols = 4:ncol(finaldf.cv),
+             cols = 5:ncol(finaldf.cv),
              rows = 2:(nrow(finaldf.cv)+1),
              gridExpand = T)
     
@@ -128,17 +135,16 @@ rppaTool <- function(inputFile,
                          check.names = F)
     
     sheetName <- paste0("Norm_Median_", new.names[idx])
-    addWorksheet(wb,sheetName)
-    writeData(wb,sheetName,df.new,rowNames = FALSE)
-    addStyle(wb = wb,
+    addWorksheet(wb1,sheetName)
+    writeData(wb1,sheetName,df.new,rowNames = FALSE)
+    addStyle(wb = wb1,
              sheet = sheetName,
              style = createStyle(numFmt = "0.00"),
              cols = 4:ncol(df.new),
              rows = 2:(nrow(df.new)+1),
              gridExpand = T) 
   }
-  browser()
-  saveWorkbook(wb,outputFile,overwrite = TRUE)
+  saveWorkbook(wb1,outputFile,overwrite = TRUE)
 }
 
 runRppa <- function(inputDir = ".") {
