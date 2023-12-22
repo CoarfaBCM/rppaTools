@@ -24,9 +24,9 @@ rppaTool <- function(inputFile,
     # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
     mydf[,c(1:3)] <- apply(mydf[,c(1:3)], 2, trimws)
     
-    originSpecies <- rep("",nrow(mydf))
-    originSpecies[grepl("_R_V", mydf$AB_name)] <- "rabbit"
-    originSpecies[grepl("_M_V", mydf$AB_name)] <- "mouse"
+    AB_species <- rep("",nrow(mydf))
+    AB_species[grepl("_R_V", mydf$AB_name)] <- "rabbit"
+    AB_species[grepl("_M_V", mydf$AB_name)] <- "mouse"
     
     mydf$AB_name <- gsub("_R_V","",mydf$AB_name)
     mydf$AB_name <- gsub("_M_V","",mydf$AB_name)
@@ -66,13 +66,19 @@ rppaTool <- function(inputFile,
     tempdf <- data.frame(Sample = mygroups[,sampleIDRow], t(data.frame(mydf[,-c(1,3)], row.names = 1, check.rows = F, check.names = F)), check.names = F, check.rows = F)
     newdf <- aggregate(. ~ Sample, data = tempdf, FUN = median)
     cvdf <- aggregate(. ~ Sample, data = tempdf, FUN = function(x){sd(x)/mean(x)})
-    cvdf.1 <- cvdf[,-1]
     
     newdf <- data.frame(newdf, row.names = 1, check.rows = F, check.names = F)
-    rownames(cvdf.1) <- rownames(newdf)
+    newdf <- newdf[unique(mygroups[,sampleIDRow]),]
     
-    finaldf <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), OriginSpecies = originSpecies, GeneSymbol = mydf[,3], t(newdf), check.rows = F, check.names = F)
-    finaldf.cv <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), OriginSpecies = originSpecies, GeneSymbol = mydf[,3], t(cvdf.1), check.rows = F, check.names = F)
+    cvdf <- data.frame(cvdf, row.names = 1, check.rows = F, check.names = F)
+    cvdf <- cvdf[unique(mygroups[,sampleIDRow]),]
+    
+    if (!(is.null(replacement)) & !(is.null(cv_cutoff))) {
+      newdf[cvdf > cv_cutoff] <- replacement
+    }
+    
+    finaldf <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(newdf), AB_species = AB_species, GeneSymbol = mydf[,3], t(newdf), check.rows = F, check.names = F)
+    finaldf.cv <- data.frame(AB_ID = as.numeric(mydf[,1]), AB_name = colnames(cvdf), AB_species = AB_species, GeneSymbol = mydf[,3], t(cvdf), check.rows = F, check.names = F)
     # write.xlsx(list(rppa = finaldf), paste0(outdir, "/full_aggregate_data.xlsx"), rowNames = F)
     
     addWorksheet(wb,paste0(sheetName,"_Median"))
@@ -119,7 +125,13 @@ rppaTool <- function(inputFile,
                     replacement = replacement)
   }
   
-  tempdf <- readWorkbook(wb1, sheet = "Norm_Median", rowNames = T)
+  tempdf1 <- readWorkbook(wb1, sheet = "Norm_Median", rowNames = T)
+  if (any(grepl("mouse",all.sheets,ignore.case = T))) {
+    tempdf2 <- readWorkbook(wb1, sheet = "Mouse_Norm_Median", rowNames = T)
+    tempdf <- rbind(tempdf1,tempdf2) 
+  } else {
+    tempdf <- tempdf1
+  }
   
   ab_file <- "~/Box/gitrepos/rppaTool/data/RPPA0054_Antibody_list-clean.xlsx"
   new.names <- excel_sheets(ab_file)
