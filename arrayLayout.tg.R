@@ -1,4 +1,8 @@
 arrayLayout <- function(inputFile) {
+  list.of.packages <- c("openxlsx")
+  new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+  if(length(new.packages)>0) {install.packages(new.packages)} else {lapply(list.of.packages, require, character.only = TRUE)}
+  
   library(openxlsx)
   fullmap <- read.xlsx(inputFile, startRow = 2, rowNames = T, colNames = F, skipEmptyRows = F, skipEmptyCols = F)
   fullmap[is.na(fullmap)] <- 0
