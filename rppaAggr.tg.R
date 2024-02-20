@@ -61,11 +61,38 @@ rppaTool <- function(inputFile,
     
     mydf[,-c(1:3)] <- sapply(mydf[,-c(1:3)], as.numeric)
     # mydf[is.na(mydf)] <- 1
-    mydf[,-c(1:3)][is.na(mydf[,-c(1:3)])] <- 1
+    # mydf[,-c(1:3)][is.na(mydf[,-c(1:3)])] <- 1
     
     tempdf <- data.frame(Sample = mygroups[,sampleIDRow], t(data.frame(mydf[,-c(1,3)], row.names = 1, check.rows = F, check.names = F)), check.names = F, check.rows = F)
-    newdf <- aggregate(. ~ Sample, data = tempdf, FUN = median)
-    cvdf <- aggregate(. ~ Sample, data = tempdf, FUN = function(x){sd(x)/mean(x)})
+    
+    # custom median and cv functions because the default R
+    # functions drop a sample if it has all NAs for even one feature
+    custom_median <- function(x) {
+      if(all(is.na(x))) {
+        NA
+      } else {
+        median(x, na.rm = T)
+      }
+    }
+    
+    custom_cv <- function(x) {
+      if(all(is.na(x))) {
+        NA
+      } else {
+        sd(x, na.rm = T)/mean(x, na.rm = T)
+      }
+    }
+    
+    newdf <- tempdf %>%
+      group_by(Sample) %>%
+      summarise(across(.cols = everything(), .fns = custom_median))
+    cvdf <- tempdf %>%
+      group_by(Sample) %>%
+      summarise(across(.cols = everything(), .fns = custom_cv))
+    
+    # The commented out lines below drop a sample if all it's replicates have NAs for even just 1 feature
+    # newdf <- aggregate(. ~ Sample, data = tempdf, FUN = function(x){median(x, na.rm = T)})
+    # cvdf <- aggregate(. ~ Sample, data = tempdf, FUN = function(x){sd(x, na.rm = T)/mean(x, na.rm = T)})
     
     newdf <- data.frame(newdf, row.names = 1, check.rows = F, check.names = F)
     newdf <- newdf[unique(mygroups[,sampleIDRow]),]
@@ -155,6 +182,96 @@ rppaTool <- function(inputFile,
              cols = 4:ncol(df.new),
              rows = 2:(nrow(df.new)+1),
              gridExpand = T) 
+  }
+  
+  # editing the raw data sheet to remove extra negative control rows without data
+  fixRawData <- function(wbObject, sheetName) {
+    rawdf <- readWorkbook(wbObject, sheet = sheetName, rowNames = F, colNames = F)
+    idx.AB_name <- which(rawdf[,2] == "AB_name")
+    flag <- c()
+    if (length(idx.AB_name) > 2) {
+      for (i in 3:length(idx.AB_name)) {
+        # if the ab_name row is the last row of the data, we drop it
+        if (idx.AB_name[i] == nrow(rawdf)) {
+          flag <-c(flag, idx.AB_name[i])
+          next
+        }
+        
+        # for the last ab_name index, we check if there is anything but negative controls
+        # in the ab_id column between this row and the last row of the dataframe.
+        # if there is nothing but negative controls in between, we drop this
+        # last ab_name index and all rows below
+        if (i == length(idx.AB_name)) {
+          ab_ids <- rawdf[(idx.AB_name[i]+1):nrow(rawdf),1]
+          if (all(grepl("^Ne",ab_ids))) {
+            flag <- c(flag, idx.AB_name[i]:nrow(rawdf))
+          }
+          next
+        }
+        
+        # if there are no rows of data between this ab_name
+        # index and the next one, drop this ab_index
+        if ((idx.AB_name[i]+1) == idx.AB_name[i+1]) {
+          flag <- c(flag, idx.AB_name[i])
+          next
+        }
+        
+        # picking all entries from the 1st column (AB_ID) and between the
+        # row after the AB_name row, since that contains the negative control,
+        # and the row before the next AB_name row since that is where the antibody data ends
+        ab_ids <- rawdf[(idx.AB_name[i]+1):(idx.AB_name[i+1]-1),1]
+        
+        # checking if there is anything but negative controls between
+        # this antibody and the next antibody. if there is nothing but
+        # negative controls, those rows will be dropped
+        if (all(grepl("^Ne",ab_ids))) {
+          flag <- c(flag, idx.AB_name[i]:(idx.AB_name[i+1]-1))
+        }
+      }
+      
+      if (!is.null(flag)) {
+        rawdf <- rawdf[-flag,]
+        removeWorksheet(wbObject,sheetName)
+        addWorksheet(wbObject,sheetName)
+        writeData(wbObject,sheetName,rawdf,rowNames = F, colNames = F)
+        
+        # bold the first column
+        addStyle(wb = wbObject,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1,
+                 rows = 1:nrow(rawdf),
+                 gridExpand = T)
+        # bold every row containing "AB_name" in the 2nd column
+        temp.idx <- which(grepl("AB_name",rawdf[,2]))
+        addStyle(wb = wbObject,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1:ncol(rawdf),
+                 rows = temp.idx,
+                 gridExpand = T)
+        # bold and highlight rows with negative controls
+        temp.idx <- which(grepl("^Ne",rawdf[,1]))
+        addStyle(wb = wbObject,
+                 sheet = sheetName,
+                 style = createStyle(fgFill = "#FFFF00", fontColour = "#000000", textDecoration = "bold"),
+                 cols = 1:ncol(rawdf),
+                 rows = temp.idx,
+                 gridExpand = T)
+      }
+    }
+    return(wbObject)
+  }
+  wb1 <- fixRawData(wb1, "Raw")
+  if (any(grepl("mouse",all.sheets,ignore.case = T))) {
+    wb1 <- fixRawData(wb1, "Mouse_Raw")
+    tempset1 <- c(1:3,which(names(wb1)=="Raw"),which(names(wb1)=="Mouse_Raw"))
+    tempset2 <- setdiff(1:length(names(wb1)), tempset1)
+    worksheetOrder(wb1) <- c(tempset1, tempset2)
+  } else {
+    tempset1 <- c(1:3,which(names(wb1)=="Raw"))
+    tempset2 <- setdiff(1:length(names(wb1)), tempset1)
+    worksheetOrder(wb1) <- c(tempset1, tempset2)
   }
   saveWorkbook(wb1,outputFile,overwrite = TRUE)
 }
