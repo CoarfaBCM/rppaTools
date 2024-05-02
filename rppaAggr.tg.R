@@ -17,25 +17,58 @@ rppaTool <- function(inputFile,
                        replace.cvcutoff = NULL,
                        replace.na = NULL) {
     mydf <- read.xlsx(inputFile, sheet = sheetName)
-
-    mygroups <- data.frame(ID=unname(sapply(colnames(mydf)[-c(1:5)], function(x){strsplit(x,"[.]")[[1]][1]})),
-                           Sample=t(mydf[1,-c(1:5)]))
-
-    mydf <- data.frame(mydf[-1,-c(3,5)], row.names = NULL, check.rows = F, check.names = F)
-
+    
+    rawdf <- mydf
+    
     # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
-    mydf[,c(1:3)] <- apply(mydf[,c(1:3)], 2, trimws)
-
+    rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+    
     # removing trailing characters other than antibody name
     # adding antibody species column
-    mydf$AB_name <- gsub("_V$|_$","", mydf$AB_name)
+    rawdf$AB_name <- gsub("_V$|_$","", rawdf$AB_name)
+    
+    AB_species <- rep("",nrow(rawdf))
+    AB_species[1] <- "AB_species"
+    AB_species[grepl("_R$", rawdf$AB_name)] <- "rabbit"
+    AB_species[grepl("_M$", rawdf$AB_name)] <- "mouse"
+    
+    rawdf$AB_name <- gsub("_R$","",rawdf$AB_name)
+    rawdf$AB_name <- gsub("_M$","",rawdf$AB_name)
+    # rawdf$Gene_ID <- unname(sapply(rawdf$Gene_ID, function(x){strsplit(x, ",")[[1]][1]}))
+    
+    # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+    rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+    
+    rawdf$AB_species <- AB_species
+    rawdf <- rawdf[, c(1,2,ncol(rawdf),3:(ncol(rawdf)-1))]
+    colnames(rawdf)[1] <- "AB_ID"
+    writeData(wb,sheetName,rawdf,rowNames = FALSE)
+    # bold the first column
+    addStyle(wb = wb,
+             sheet = sheetName,
+             style = createStyle(textDecoration = "bold"),
+             cols = 1,
+             rows = 1:nrow(rawdf),
+             gridExpand = T)
+    
+    # bold the first row
+    addStyle(wb = wb,
+             sheet = sheetName,
+             style = createStyle(textDecoration = "bold"),
+             cols = 1:ncol(rawdf),
+             rows = 1,
+             gridExpand = T)
+    
+    mydf <- rawdf
 
-    AB_species <- rep("",nrow(mydf))
-    AB_species[grepl("_R$", mydf$AB_name)] <- "rabbit"
-    AB_species[grepl("_M$", mydf$AB_name)] <- "mouse"
+    mygroups <- data.frame(ID=unname(sapply(colnames(mydf)[-c(1:6)], function(x){strsplit(x,"[.]")[[1]][1]})),
+                           Sample=t(mydf[1,-c(1:6)]))
+    colnames(mygroups) <- c("ID","Sample")
+    
+    AB_species <- mydf$AB_species[-1]
+    mydf <- data.frame(mydf[-1,-c(3,4,6)], row.names = NULL, check.rows = F, check.names = F)
 
-    mydf$AB_name <- gsub("_R$","",mydf$AB_name)
-    mydf$AB_name <- gsub("_M$","",mydf$AB_name)
+    # cleaning up gene IDs
     mydf$Gene_ID <- unname(sapply(mydf$Gene_ID, function(x){strsplit(x, ",")[[1]][1]}))
     
     # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
@@ -71,7 +104,7 @@ rppaTool <- function(inputFile,
     mydf[,-c(1:3)] <- sapply(mydf[,-c(1:3)], as.numeric)
 
     if (!(is.null(replace.na))) {
-      mydf[,-c(1:3)][is.na(mydf[,-c(1:3)])] <- 1
+      mydf[,-c(1:3)][is.na(mydf[,-c(1:3)])] <- replace.na
     }
 
     tempdf <- data.frame(Sample = mygroups[,sampleIDRow], t(data.frame(mydf[,-c(1,3)], row.names = 1, check.rows = F, check.names = F)), check.names = F, check.rows = F)
@@ -127,6 +160,22 @@ rppaTool <- function(inputFile,
              cols = 5:ncol(finaldf.cv),
              rows = 2:(nrow(finaldf.cv)+1),
              gridExpand = T)
+    
+    # bold the first column
+    addStyle(wb = wb,
+             sheet = paste0(sheetName,"_Median"),
+             style = createStyle(textDecoration = "bold"),
+             cols = 1,
+             rows = 1:nrow(finaldf.cv),
+             gridExpand = T)
+    
+    # bold the first row
+    addStyle(wb = wb,
+             sheet = paste0(sheetName,"_Median"),
+             style = createStyle(textDecoration = "bold"),
+             cols = 1:ncol(finaldf.cv),
+             rows = 1,
+             gridExpand = T)
 
     addWorksheet(wb,paste0(sheetName,"_CV"))
     writeData(wb,paste0(sheetName,"_CV"),finaldf.cv,rowNames = FALSE)
@@ -143,13 +192,80 @@ rppaTool <- function(inputFile,
              cols = 5:ncol(finaldf.cv),
              rows = 2:(nrow(finaldf.cv)+1),
              gridExpand = T)
+    
+    # bold the first column
+    addStyle(wb = wb,
+             sheet = paste0(sheetName,"_CV"),
+             style = createStyle(textDecoration = "bold"),
+             cols = 1,
+             rows = 1:nrow(finaldf.cv),
+             gridExpand = T)
+    
+    # bold the first row
+    addStyle(wb = wb,
+             sheet = paste0(sheetName,"_CV"),
+             style = createStyle(textDecoration = "bold"),
+             cols = 1:ncol(finaldf.cv),
+             rows = 1,
+             gridExpand = T)
 
+    return(wb)
+  }
+  
+  fixQIsheets <- function(wb, sheetName) {
+    rawdf <- readWorkbook(wb, sheet = sheetName, colNames = F)
+    
+    # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+    rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+    
+    # removing trailing characters other than antibody name
+    # adding antibody species column
+    rawdf$X2 <- gsub("_V$|_$","", rawdf$X2)
+    
+    AB_species <- rep("",nrow(rawdf))
+    AB_species[1] <- "AB_species"
+    AB_species[grepl("_R$", rawdf$X2)] <- "rabbit"
+    AB_species[grepl("_M$", rawdf$X2)] <- "mouse"
+    
+    rawdf$X2 <- gsub("_R$","",rawdf$X2)
+    rawdf$X2 <- gsub("_M$","",rawdf$X2)
+    
+    # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+    rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+    
+    rawdf$AB_species <- AB_species
+    rawdf <- rawdf[, c(1,2,ncol(rawdf),3:(ncol(rawdf)-1))]
+    
+    writeData(wb, sheetName, rawdf, rowNames = F, colNames = F)
+    
+    # bold the first column
+    addStyle(wb = wb,
+             sheet = sheetName,
+             style = createStyle(textDecoration = "bold"),
+             cols = 1,
+             rows = 1:nrow(rawdf),
+             gridExpand = T)
+    
+    # bold the first row
+    addStyle(wb = wb,
+             sheet = sheetName,
+             style = createStyle(textDecoration = "bold"),
+             cols = 1:ncol(rawdf),
+             rows = 1,
+             gridExpand = T)
+    
     return(wb)
   }
   
   all.sheets <- excel_sheets(inputFile)
   wb <- loadWorkbook(inputFile)
   if(!("Norm_Median" %in% all.sheets)) {
+    # adding AB_species column to QI and mouse_QI sheet
+    wb <- fixQIsheets(wb = wb, sheetName = "QI")
+    if (any(grepl("mouse",all.sheets,ignore.case = T))) {
+      wb <- fixQIsheets(wb = wb, sheetName = "Mouse_QI")
+    }
+    
     wb1 <- tempfunc(inputFile = inputFile,
                     wb = wb,
                     sheetName = "Norm",
@@ -189,23 +305,42 @@ rppaTool <- function(inputFile,
       
       if (length(keep) == 0) {
         cat("### No ", sheetName," found ###\n")
-        next
+        df.new <- NA
+      } else {
+        df.new <- tempdf[keep,]
+        df.new <- data.frame(AB_ID=as.numeric(rownames(df.new)),
+                             df.new,
+                             check.rows = F,
+                             check.names = F)
       }
       
-      df.new <- tempdf[keep,]
-      df.new <- data.frame(AB_ID=as.numeric(rownames(df.new)),
-                           df.new,
-                           check.rows = F,
-                           check.names = F)
       sheetName <- paste0("Norm_Median_", sheetName)
       addWorksheet(wb1,sheetName)
       writeData(wb1,sheetName,df.new,rowNames = FALSE)
-      addStyle(wb = wb1,
-               sheet = sheetName,
-               style = createStyle(numFmt = "0.00"),
-               cols = 4:ncol(df.new),
-               rows = 2:(nrow(df.new)+1),
-               gridExpand = T)
+      if (length(keep) > 0) {
+        addStyle(wb = wb1,
+                 sheet = sheetName,
+                 style = createStyle(numFmt = "0.00"),
+                 cols = 4:ncol(df.new),
+                 rows = 2:(nrow(df.new)+1),
+                 gridExpand = T)
+        
+        # bold the first column
+        addStyle(wb = wb1,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1,
+                 rows = 1:nrow(df.new),
+                 gridExpand = T)
+        
+        # bold the first row
+        addStyle(wb = wb1,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1:ncol(df.new),
+                 rows = 1,
+                 gridExpand = T)
+      }
     }
     
     # editing the raw data sheet to remove extra negative control rows without data
@@ -255,37 +390,63 @@ rppaTool <- function(inputFile,
         
         if (!is.null(flag)) {
           rawdf <- rawdf[-flag,]
-          removeWorksheet(wbObject,sheetName)
-          addWorksheet(wbObject,sheetName)
-          writeData(wbObject,sheetName,rawdf,rowNames = F, colNames = F)
-          
-          # bold the first column
-          addStyle(wb = wbObject,
-                   sheet = sheetName,
-                   style = createStyle(textDecoration = "bold"),
-                   cols = 1,
-                   rows = 1:nrow(rawdf),
-                   gridExpand = T)
-          # bold every row containing "AB_name" in the 2nd column
-          temp.idx <- which(grepl("AB_name",rawdf[,2]))
-          addStyle(wb = wbObject,
-                   sheet = sheetName,
-                   style = createStyle(textDecoration = "bold"),
-                   cols = 1:ncol(rawdf),
-                   rows = temp.idx,
-                   gridExpand = T)
-          # bold and highlight rows with negative controls
-          temp.idx <- which(grepl("^Ne",rawdf[,1]))
-          addStyle(wb = wbObject,
-                   sheet = sheetName,
-                   style = createStyle(fgFill = "#FFFF00", fontColour = "#000000", textDecoration = "bold"),
-                   cols = 1:ncol(rawdf),
-                   rows = temp.idx,
-                   gridExpand = T)
         }
+        
+        # adding AB_species column
+        # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+        rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+        
+        # removing trailing characters other than antibody name
+        # adding antibody species column
+        rawdf$X2 <- gsub("_V$|_$","", rawdf$X2)
+        
+        AB_species <- rep("",nrow(rawdf))
+        AB_species[1:2] <- "AB_species"
+        AB_species[grepl("_R$", rawdf$X2)] <- "rabbit"
+        AB_species[grepl("_M$", rawdf$X2)] <- "mouse"
+        
+        rawdf$X2 <- gsub("_R$","",rawdf$X2)
+        rawdf$X2 <- gsub("_M$","",rawdf$X2)
+        # rawdf$Gene_ID <- unname(sapply(rawdf$Gene_ID, function(x){strsplit(x, ",")[[1]][1]}))
+        
+        # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+        rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+        
+        rawdf$AB_species <- AB_species
+        rawdf <- rawdf[, c(1,2,ncol(rawdf),3:(ncol(rawdf)-1))]
+        # done adding AB_species column
+        
+        removeWorksheet(wbObject,sheetName)
+        addWorksheet(wbObject,sheetName)
+        writeData(wbObject,sheetName,rawdf,rowNames = F, colNames = F)
+        
+        # bold the first column
+        addStyle(wb = wbObject,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1,
+                 rows = 1:nrow(rawdf),
+                 gridExpand = T)
+        # bold every row containing "AB_name" in the 2nd column
+        temp.idx <- which(grepl("AB_name",rawdf[,2]))
+        addStyle(wb = wbObject,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1:ncol(rawdf),
+                 rows = temp.idx,
+                 gridExpand = T)
+        # bold and highlight rows with negative controls
+        temp.idx <- which(grepl("^Ne",rawdf[,1]))
+        addStyle(wb = wbObject,
+                 sheet = sheetName,
+                 style = createStyle(fgFill = "#FFFF00", fontColour = "#000000", textDecoration = "bold"),
+                 cols = 1:ncol(rawdf),
+                 rows = temp.idx,
+                 gridExpand = T)
       }
       return(wbObject)
     }
+    
     wb1 <- fixRawData(wb1, "Raw")
     if (any(grepl("mouse",all.sheets,ignore.case = T))) {
       wb1 <- fixRawData(wb1, "Mouse_Raw")
