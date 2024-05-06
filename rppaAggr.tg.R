@@ -298,9 +298,9 @@ rppaTool <- function(inputFile,
       ab_list <- read.xlsx(abFile, sheet = new.names[idx], rowNames = T)
       keep <- intersect(rownames(ab_list), rownames(tempdf))
       if (grepl("epi", new.names[idx], ignore.case = T)) {
-        sheetName <- "EpigeneticModifiers"
+        sheetName <- "Epi"
       } else {
-        sheetName <- "PhosTotalPairs"
+        sheetName <- "Phos"
       }
       
       if (length(keep) == 0) {
@@ -450,13 +450,28 @@ rppaTool <- function(inputFile,
     wb1 <- fixRawData(wb1, "Raw")
     if (any(grepl("mouse",all.sheets,ignore.case = T))) {
       wb1 <- fixRawData(wb1, "Mouse_Raw")
-      tempset1 <- c(1:3,which(names(wb1)=="Raw"),which(names(wb1)=="Mouse_Raw"))
-      tempset2 <- setdiff(1:length(names(wb1)), tempset1)
-      worksheetOrder(wb1) <- c(tempset1, tempset2)
+      worksheetOrder(wb1) <- c(which(names(wb1)=="Legend"),
+                               which(names(wb1)=="Norm"),
+                               which(names(wb1)=="QI"),
+                               which(names(wb1)=="Raw"),
+                               which(names(wb1)=="Mouse_Norm"),
+                               which(names(wb1)=="Mouse_QI"),
+                               which(names(wb1)=="Mouse_Raw"),
+                               which(names(wb1)=="Norm_Median"),
+                               which(names(wb1)=="Norm_CV"),
+                               which(names(wb1)=="Mouse_Norm_Median"),
+                               which(names(wb1)=="Mouse_Norm_CV"),
+                               which(names(wb1)=="Norm_Median_Phos"),
+                               which(names(wb1)=="Norm_Median_Epi"))
     } else {
-      tempset1 <- c(1:3,which(names(wb1)=="Raw"))
-      tempset2 <- setdiff(1:length(names(wb1)), tempset1)
-      worksheetOrder(wb1) <- c(tempset1, tempset2)
+      worksheetOrder(wb1) <- c(which(names(wb1)=="Legend"),
+                               which(names(wb1)=="Norm"),
+                               which(names(wb1)=="QI"),
+                               which(names(wb1)=="Raw"),
+                               which(names(wb1)=="Norm_Median"),
+                               which(names(wb1)=="Norm_CV"),
+                               which(names(wb1)=="Norm_Median_Phos"),
+                               which(names(wb1)=="Norm_Median_Epi"))
     }
     saveWorkbook(wb1,outputFile,overwrite = TRUE) 
   } else {
