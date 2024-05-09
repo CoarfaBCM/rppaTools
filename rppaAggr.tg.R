@@ -1,6 +1,6 @@
 rppaTool <- function(inputFile,
                      outputFile,
-                     abFile,
+                     abFile = NULL,
                      cv_cutoff = 0.25,
                      sampleIDRow = 1,
                      replace.cvcutoff = NULL,
@@ -292,55 +292,65 @@ rppaTool <- function(inputFile,
       tempdf <- tempdf1
     }
     
-    new.names <- excel_sheets(abFile)
-    
-    for (idx in seq_along(new.names)) {
-      ab_list <- read.xlsx(abFile, sheet = new.names[idx], rowNames = T)
-      keep <- intersect(rownames(ab_list), rownames(tempdf))
-      if (grepl("epi", new.names[idx], ignore.case = T)) {
-        sheetName <- "Epi"
-      } else {
-        sheetName <- "Phos"
-      }
+    if (!(is.null(abFile))) {
+      new.names <- excel_sheets(abFile)
       
-      if (length(keep) == 0) {
-        cat("### No ", sheetName," found ###\n")
-        df.new <- NA
-      } else {
-        df.new <- tempdf[keep,]
-        df.new <- data.frame(AB_ID=as.numeric(rownames(df.new)),
-                             df.new,
-                             check.rows = F,
-                             check.names = F)
+      for (idx in seq_along(new.names)) {
+        ab_list <- read.xlsx(abFile, sheet = new.names[idx], rowNames = T)
+        keep <- intersect(rownames(ab_list), rownames(tempdf))
+        if (grepl("epi", new.names[idx], ignore.case = T)) {
+          sheetName <- "Epi"
+        } else {
+          sheetName <- "Phos"
+        }
+        
+        if (length(keep) == 0) {
+          cat("### No ", sheetName," found ###\n")
+          df.new <- NA
+        } else {
+          df.new <- tempdf[keep,]
+          df.new <- data.frame(AB_ID=as.numeric(rownames(df.new)),
+                               df.new,
+                               check.rows = F,
+                               check.names = F)
+        }
+        
+        sheetName <- paste0("Norm_Median_", sheetName)
+        addWorksheet(wb1,sheetName)
+        writeData(wb1,sheetName,df.new,rowNames = FALSE)
+        if (length(keep) > 0) {
+          addStyle(wb = wb1,
+                   sheet = sheetName,
+                   style = createStyle(numFmt = "0.00"),
+                   cols = 4:ncol(df.new),
+                   rows = 2:(nrow(df.new)+1),
+                   gridExpand = T)
+          
+          # bold the first column
+          addStyle(wb = wb1,
+                   sheet = sheetName,
+                   style = createStyle(textDecoration = "bold"),
+                   cols = 1,
+                   rows = 1:nrow(df.new),
+                   gridExpand = T)
+          
+          # bold the first row
+          addStyle(wb = wb1,
+                   sheet = sheetName,
+                   style = createStyle(textDecoration = "bold"),
+                   cols = 1:ncol(df.new),
+                   rows = 1,
+                   gridExpand = T)
+        }
       }
+    } else {
+      df.new <- NA
       
-      sheetName <- paste0("Norm_Median_", sheetName)
-      addWorksheet(wb1,sheetName)
-      writeData(wb1,sheetName,df.new,rowNames = FALSE)
-      if (length(keep) > 0) {
-        addStyle(wb = wb1,
-                 sheet = sheetName,
-                 style = createStyle(numFmt = "0.00"),
-                 cols = 4:ncol(df.new),
-                 rows = 2:(nrow(df.new)+1),
-                 gridExpand = T)
-        
-        # bold the first column
-        addStyle(wb = wb1,
-                 sheet = sheetName,
-                 style = createStyle(textDecoration = "bold"),
-                 cols = 1,
-                 rows = 1:nrow(df.new),
-                 gridExpand = T)
-        
-        # bold the first row
-        addStyle(wb = wb1,
-                 sheet = sheetName,
-                 style = createStyle(textDecoration = "bold"),
-                 cols = 1:ncol(df.new),
-                 rows = 1,
-                 gridExpand = T)
-      }
+      addWorksheet(wb1,"Norm_Median_Epi")
+      writeData(wb1,"Norm_Median_Epi",df.new,rowNames = FALSE)
+      
+      addWorksheet(wb1,"Norm_Median_Phos")
+      writeData(wb1,"Norm_Median_Phos",df.new,rowNames = FALSE)
     }
     
     # editing the raw data sheet to remove extra negative control rows without data
@@ -492,6 +502,8 @@ runRppa <- function(inputDir = ".") {
                        full.names = T,
                        include.dirs = T,
                        recursive = F)
+  if (length(ABFile) == 0) {ABFile <- NULL}
+  
   for (i in seq_along(allfiles)) {
     inputFile <- allfiles[i]
     print(cat("##### INPUT:", inputFile,"#####\n"))
