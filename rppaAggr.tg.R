@@ -496,6 +496,7 @@ runRppa <- function(inputDir = ".") {
                          recursive = T,
                          include.dirs = T,
                          all.files = F)
+  allfiles <- allfiles[!grepl("[~$]",allfiles)]
   ABFile <- list.files(path= inputDir,
                        pattern = "antibody",
                        ignore.case = T,
