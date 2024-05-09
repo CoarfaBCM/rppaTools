@@ -1,3 +1,13 @@
+# Function to check if text file is utf-8 encoded
+check_utf8_encoding <- function(file_path) {
+  tryCatch({
+    readLines(file_path, encoding = "UTF-8")
+    TRUE  # If readLines succeeds, it's UTF-8
+  }, error = function(e) {
+    FALSE  # If an error occurs, not UTF-8
+  })
+}
+
 # Function to extract information from a line
 extract_info <- function(line, search_pattern) {
   if (grepl("tif",search_pattern,ignore.case = T)) {
@@ -48,7 +58,7 @@ readOneGpr <- function(input_file) {
   close(con)
   
   # Read in gpr file
-  temp <- readLines(input_file, warn = FALSE)
+  temp <- readLines(input_file, warn = FALSE) # this part also strips windows style line endings (\r\n) and leaves behind unix style line endings (\n)
   
   # Check for F532 field in total protein gpr files and F635 field in other antibody gpr files
   if (grepl("protein", input_file, ignore.case = T)) {
@@ -73,9 +83,12 @@ readOneGpr <- function(input_file) {
   num_lines <- length(temp.final)
   
   # Save final gpr file after removing quotation marks and blank lines
-  writeLines(temp.final, input_file)
+  writeLines(temp.final, input_file) # windows may need edited command: writeLines(temp.final, input_file, eol = "\r\n")
   
-  full_info <- c(input_file, basename(input_file), tiff_file, jpeg_file, F532_F635, quotesRemoved, blankLinesRemoved, num_lines)
+  # Check if saved gpr file is utf-8 encoded or not
+  checkEncoding <- check_utf8_encoding(input_file)
+  
+  full_info <- c(input_file, basename(input_file), tiff_file, jpeg_file, F532_F635, quotesRemoved, blankLinesRemoved, num_lines, checkEncoding)
   
   return(full_info)
 }
@@ -89,7 +102,7 @@ gprConsistencyCheck <- function(input_path = ".",
   if(length(new.packages)>0) {install.packages(new.packages)} else {lapply(list.of.packages, require, character.only = TRUE)}
   
   finaldf <- NULL
-  for (myfile in list.files(input_path,pattern = ".gpr",full.names = T,recursive = T)) {
+  for (myfile in list.files(input_path,pattern = "\\.gpr$",full.names = T,recursive = T)) {
     finaldf <- rbind(finaldf, readOneGpr(myfile))
   }
   finaldf <- as.data.frame(finaldf)
@@ -110,6 +123,7 @@ gprConsistencyCheck <- function(input_path = ".",
     jpeg_file <- finaldf[x,4]
     F532_F635 <- finaldf[x,5]
     num_lines <- finaldf[x,8]
+    checkEncoding <- finaldf[x,9]
     if((file_path_sans_ext(basename(input_file)) == file_path_sans_ext(basename(tiff_file))) && (file_path_sans_ext(basename(input_file)) == file_path_sans_ext(basename(jpeg_file)))) {
       if (grepl("protein", input_file, ignore.case = T)) {
         temp.list <- unlist(strsplit(basename(input_file),"_"))
@@ -129,9 +143,12 @@ gprConsistencyCheck <- function(input_path = ".",
     if (!(as.logical(F532_F635))) {
       consistency <- "FAIL (F532/F635 field missing or mislabelled)"
     }
+    if (!(as.logical(checkEncoding))) {
+      consistency <- "FAIL (file is not UTF-8 encoded)"
+    }
     return(consistency)
   })
-  colnames(finaldf) <- c("FilePath","GPR File","TIFF File","JPEG File","F532/F635","QuoteMarksRemoved","BlankLinesRemoved","Num of lines","Consistency")
+  colnames(finaldf) <- c("FilePath","GPR File","TIFF File","JPEG File","F532/F635","QuoteMarksRemoved","BlankLinesRemoved","Num of Lines","UTF-8 Encoding","Consistency")
   if (all(finaldf$Consistency == "PASS")) {myFlag <- "PASS"} else {myFlag <- "FAIL"}
   myDate <- format(Sys.Date(), "%Y%m%d")
   outFileName <- paste0(input_path, "/", myDate,"_rppaGprConsistencyCheck-",myFlag,out_suffix,".xls")
