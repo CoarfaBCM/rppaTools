@@ -5,7 +5,7 @@ removeBlankLines <- function(consistencyFile) {
   consistency.df <- read.table(consistencyFile, header = T, sep = "\t")
   
   # picking out files which failed due to number of lines not matching
-  keep <- consistency.df$Consistent == "FALSE (number of lines not matching)"
+  keep <- consistency.df$Consistent == "FAIL (number of lines not matching)"
   failedFiles <- consistency.df$FilePath[keep]
   
   lapply(1:length(failedFiles), function(x){
