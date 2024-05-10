@@ -97,7 +97,7 @@ readOneGpr <- function(input_file) {
 gprConsistencyCheck <- function(input_path = ".",
                                 out_suffix = NULL) {
   # Loading required packages and installing ones not present
-  list.of.packages <- c("tools")
+  list.of.packages <- c("tools","openxlsx")
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)>0) {install.packages(new.packages)} else {lapply(list.of.packages, require, character.only = TRUE)}
   
@@ -151,9 +151,10 @@ gprConsistencyCheck <- function(input_path = ".",
   colnames(finaldf) <- c("FilePath","GPR File","TIFF File","JPEG File","F532/F635","QuoteMarksRemoved","BlankLinesRemoved","Num of Lines","UTF-8 Encoding","Consistency")
   if (all(finaldf$Consistency == "PASS")) {myFlag <- "PASS"} else {myFlag <- "FAIL"}
   myDate <- format(Sys.Date(), "%Y%m%d")
-  outFileName <- paste0(input_path, "/", myDate,"_rppaGprConsistencyCheck-",myFlag,out_suffix,".xls")
+  outFileName <- paste0(input_path, "/", myDate,"_rppaGprConsistencyCheck-",myFlag,out_suffix,".xlsx")
   
-  write.table(finaldf, outFileName, quote = F, sep = "\t", row.names = F, col.names = T)
+  # write.table(finaldf, outFileName, quote = F, sep = "\t", row.names = F, col.names = T)
+  openxlsx::write.xlsx(finaldf, outFileName, rowNames = F, colNames = T, overwrite = T)
 }
 
 gprConsistencyCheck()
