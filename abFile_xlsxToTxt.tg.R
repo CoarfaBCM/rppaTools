@@ -6,7 +6,8 @@ abFile_xlsxToTxt <- function(workDir = ".") {
   if(length(new.packages)>0) {install.packages(new.packages)} else {lapply(list.of.packages, require, character.only = TRUE)}
   
   # finding file with antibody list (the file name must end in "antibody list.xlsx")
-  ab_file <- list.files(workDir, "antibody list.xlsx",
+  ab_file <- list.files(workDir,
+                        "Antibody list.xlsx|Antibody list histone marks.xlsx",
                         ignore.case = T, 
                         recursive = F, 
                         all.files = F, 
