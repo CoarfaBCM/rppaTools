@@ -8,7 +8,7 @@ rppaTool <- function(inputFile,
   library(readxl)
   library(openxlsx)
   library(dplyr)
-
+  
   tempfunc <- function(inputFile,
                        wb,
                        sheetName,
@@ -27,48 +27,52 @@ rppaTool <- function(inputFile,
       
       return(wb)
     } else {
-      rawdf <- mydf
-      
-      # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
-      rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
-      
-      # removing trailing characters other than antibody name
-      # adding antibody species column
-      rawdf$AB_name <- gsub("_V$|_$","", rawdf$AB_name)
-      
-      AB_species <- rep("",nrow(rawdf))
-      AB_species[1] <- "AB_species"
-      AB_species[grepl("_R$", rawdf$AB_name)] <- "rabbit"
-      AB_species[grepl("_M$", rawdf$AB_name)] <- "mouse"
-      
-      rawdf$AB_name <- gsub("_R$","",rawdf$AB_name)
-      rawdf$AB_name <- gsub("_M$","",rawdf$AB_name)
-      # rawdf$Gene_ID <- unname(sapply(rawdf$Gene_ID, function(x){strsplit(x, ",")[[1]][1]}))
-      
-      # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
-      rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
-      
-      rawdf$AB_species <- AB_species
-      rawdf <- rawdf[, c(1,2,ncol(rawdf),3:(ncol(rawdf)-1))]
-      colnames(rawdf)[1] <- "AB_ID"
-      writeData(wb,sheetName,rawdf,rowNames = FALSE)
-      # bold the first column
-      addStyle(wb = wb,
-               sheet = sheetName,
-               style = createStyle(textDecoration = "bold"),
-               cols = 1,
-               rows = 1:nrow(rawdf),
-               gridExpand = T)
-      
-      # bold the first row
-      addStyle(wb = wb,
-               sheet = sheetName,
-               style = createStyle(textDecoration = "bold"),
-               cols = 1:ncol(rawdf),
-               rows = 1,
-               gridExpand = T)
-      
-      mydf <- rawdf
+      if (!("AB_species" %in% names(mydf))) {
+        rawdf <- mydf
+        
+        # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+        rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+        
+        # removing trailing characters other than antibody name
+        rawdf$AB_name <- gsub("_V$|_$","", rawdf$AB_name)
+        
+        # adding antibody species column
+        AB_species <- rep("",nrow(rawdf))
+        AB_species[1] <- "AB_species"
+        AB_species[grepl("_R$", rawdf$AB_name)] <- "rabbit"
+        AB_species[grepl("_M$", rawdf$AB_name)] <- "mouse"
+        
+        rawdf$AB_name <- gsub("_R$","",rawdf$AB_name)
+        rawdf$AB_name <- gsub("_M$","",rawdf$AB_name)
+        # rawdf$Gene_ID <- unname(sapply(rawdf$Gene_ID, function(x){strsplit(x, ",")[[1]][1]}))
+        
+        # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
+        rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
+        
+        colnames(rawdf)[1] <- "AB_ID"
+        rawdf$AB_species <- AB_species
+        mycols1 <- c("AB_ID","AB_name","AB_species","Slide_file","Gene_ID", "Swiss_ID")
+        mycols2 <- setdiff(names(rawdf), mycols1)
+        rawdf <- rawdf[, c(mycols1, mycols2)]
+        writeData(wb,sheetName,rawdf,rowNames = FALSE)
+        # bold the first column
+        addStyle(wb = wb,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1,
+                 rows = 1:nrow(rawdf),
+                 gridExpand = T)
+        
+        # bold the first row
+        addStyle(wb = wb,
+                 sheet = sheetName,
+                 style = createStyle(textDecoration = "bold"),
+                 cols = 1:ncol(rawdf),
+                 rows = 1,
+                 gridExpand = T)
+        
+        mydf <- rawdf
+      }
       
       mygroups <- data.frame(ID=unname(sapply(colnames(mydf)[-c(1:6)], function(x){strsplit(x,"[.]")[[1]][1]})),
                              Sample=t(mydf[1,-c(1:6)]))
@@ -177,7 +181,7 @@ rppaTool <- function(inputFile,
                sheet = paste0(sheetName,"_Median"),
                style = createStyle(textDecoration = "bold"),
                cols = 1,
-               rows = 1:nrow(finaldf.cv),
+               rows = 1:(nrow(finaldf.cv)+1),
                gridExpand = T)
       
       # bold the first row
@@ -209,7 +213,7 @@ rppaTool <- function(inputFile,
                sheet = paste0(sheetName,"_CV"),
                style = createStyle(textDecoration = "bold"),
                cols = 1,
-               rows = 1:nrow(finaldf.cv),
+               rows = 1:(nrow(finaldf.cv)+1),
                gridExpand = T)
       
       # bold the first row
@@ -348,7 +352,7 @@ rppaTool <- function(inputFile,
                    sheet = sheetName,
                    style = createStyle(textDecoration = "bold"),
                    cols = 1,
-                   rows = 1:nrow(df.new),
+                   rows = 1:(nrow(df.new)+1),
                    gridExpand = T)
           
           # bold the first row
