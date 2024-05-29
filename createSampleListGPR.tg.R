@@ -14,11 +14,14 @@ mainFunction <- function(sampleListFile, gprFile, outputFile) {
   # reading in sample list file
   df.samplelist <- openxlsx::read.xlsx(sampleListFile, sheet = 1, colNames = T, rowNames = F, startRow = 2)
   
-  if (sum(rawgprdf$Name %in% df.samplelist$Name.in.print.map) == 0) {stop(cat("#### NO SAMPLE NAMES MATCHING BETWEEN SAMPLE LIST FILE AND GPR FILE ####\n#### CHECK SAMPLE LIST FILE:", sampleListFile,"####\n#### CHECK GPR FILE:", gprFile,"####\n"))}
+  commonSamples <- intersect(rawgprdf$Name, df.samplelist$Name.in.print.map)
+  
+  if (length(commonSamples) == 0) {stop(cat("#### NO SAMPLE NAMES MATCHING BETWEEN SAMPLE LIST FILE AND GPR FILE ####\n#### CHECK SAMPLE LIST FILE:", sampleListFile,"####\n#### CHECK GPR FILE:", gprFile,"####\n"))}
   
   numSamples.sampleList <- sum(!(grepl("^Cal|^Ctrl", df.samplelist$Name.in.print.map)))
   numSamples.match <- sum(df.samplelist$Name.in.print.map %in% rawgprdf$Name)
-  if (numSamples.match != numSamples.sampleList) {stop((cat("#### NUMBER OF SAMPLES FROM SAMPLE LIST FILE MISSING IN THE GPR FILE:", numSamples.sampleList - numSamples.match, "####\n")))}
+  
+  if (numSamples.sampleList > numSamples.match) {stop((cat("#### NUMBER OF SAMPLES FROM SAMPLE LIST FILE MISSING IN THE GPR FILE:", numSamples.sampleList - numSamples.match, "####\n")))}
   
   rawgprdf$`protein concentration for normalization` <- sapply(rawgprdf$Name,
                                                                function(x) {
