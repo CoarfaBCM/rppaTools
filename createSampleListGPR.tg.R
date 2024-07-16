@@ -26,7 +26,8 @@ mainFunction <- function(sampleListFile, gprFile, outputFile) {
   rawgprdf$`protein concentration for normalization` <- sapply(rawgprdf$Name,
                                                                function(x) {
                                                                  if (x %in% df.samplelist$Name.in.print.map) {
-                                                                   df.samplelist$`Normalization.Conc.(ug/ul)`[df.samplelist$Name.in.print.map == x]
+                                                                   y = df.samplelist$`Normalization.Conc.(ug/ul)`[df.samplelist$Name.in.print.map == x]
+                                                                   if (y == "no normalization") {""} else {y}
                                                                  } else {""}
                                                                })
   rawgprdf <- rawgprdf[,c(1:4,6:7,5)]
