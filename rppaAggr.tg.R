@@ -112,7 +112,7 @@ rppaTool <- function(inputFile,
         return(unique_names)
       }
       
-      mydf$AB_name <- makeUniqueNames(IDs = mydf$X1, names = mydf$AB_name)
+      mydf$AB_name <- makeUniqueNames(IDs = mydf$AB_ID, names = mydf$AB_name)
       
       mydf[,-c(1:3)] <- sapply(mydf[,-c(1:3)], as.numeric)
       
