@@ -16,6 +16,8 @@ rppaOrganize <- function(input_path = ".") {
   
   file.rename(gpr.dirs, file.path(input_path, paste0(mylabel,"_gpr"), gpr.dirs))
   file.rename(jpg.dirs, file.path(input_path, paste0(mylabel,"_jpg"), jpg.dirs))
+  
+  cat("##### ORGANIZING FILES COMPLETE #####\n")
 }
 
 rppaOrganize()
