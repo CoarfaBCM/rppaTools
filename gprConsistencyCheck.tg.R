@@ -29,6 +29,8 @@ extract_info <- function(line, search_pattern) {
 
 # Function to read info from one gpr file at a time
 readOneGpr <- function(input_file) {
+  cat("##### PROCESSING:", input_file, "#####\n")
+  
   # Initialize variables to store the extracted information
   tiff_file <- NULL
   jpeg_file <- NULL
@@ -74,9 +76,13 @@ readOneGpr <- function(input_file) {
   temp.final <- gsub('"', '', temp)
   
   # Count number of empty blank lines to be removed
-  blankLinesRemoved <- sum(temp.final == "")
+  blankLinesRemoved1 <- sum(temp.final == "")
+  blankLines <- sapply(1:length(temp.final), function(x){gsub("\t","",temp.final[x]) == ""})
+  blankLinesRemoved2 <- sum(blankLines)
+  blankLinesRemoved <- blankLinesRemoved1 + blankLinesRemoved2
   
   # Remove blank lines
+  temp.final <- temp.final[!blankLines]
   temp.final <- temp.final[!(temp.final == "")]
   
   # Save number of lines
@@ -89,6 +95,8 @@ readOneGpr <- function(input_file) {
   checkEncoding <- check_utf8_encoding(input_file)
   
   full_info <- c(input_file, basename(input_file), tiff_file, jpeg_file, F532_F635, quotesRemoved, blankLinesRemoved, num_lines, checkEncoding)
+  
+  cat("##### COMPLETED:", input_file, "#####\n")
   
   return(full_info)
 }
@@ -155,6 +163,9 @@ gprConsistencyCheck <- function(input_path = ".",
   
   # write.table(finaldf, outFileName, quote = F, sep = "\t", row.names = F, col.names = T)
   openxlsx::write.xlsx(finaldf, outFileName, rowNames = F, colNames = T, overwrite = T)
+  
+  cat("##### CONSISTENCY CHECK COMPLETE #####\n")
+  cat("##### OUTPUT FILE:",outFileName,"#####\n")
 }
 
 gprConsistencyCheck()
