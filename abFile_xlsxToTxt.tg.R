@@ -36,6 +36,8 @@ abFile_xlsxToTxt <- function(workDir = ".") {
   saveFile <- gsub(".xlsx",paste0("_",myDate,".txt"),ab_file)
   saveFile <- gsub(" ","_",saveFile)
   write.table(mydf,saveFile,append = F,quote = F,sep = "\t",row.names = F,col.names = F)
+  
+  cat("##### OUTPUT FILE:",saveFile,"#####\n")
 }
 
 abFile_xlsxToTxt()
