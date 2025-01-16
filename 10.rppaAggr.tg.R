@@ -519,7 +519,7 @@ runRppa <- function(inputDir = ".") {
                          all.files = F)
   allfiles <- allfiles[!grepl("[~$]",allfiles)]
   ABFile <- list.files(path= inputDir,
-                       pattern = "phos-total | epigenetic modifiers",
+                       pattern = "-clean.xlsx$",
                        ignore.case = T,
                        full.names = T,
                        include.dirs = T,
