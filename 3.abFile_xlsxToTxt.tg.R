@@ -32,7 +32,7 @@ abFile_xlsxToTxt <- function(workDir = ".") {
   # mydf[,3] <- trimws(mydf[,2])
   
   # save as tab delimited text file
-  myDate <- format(Sys.Date(), "%m-%d-%Y")
+  myDate <- format(Sys.Date(), "%m%d%Y")
   saveFile <- gsub(".xlsx",paste0("_",myDate,".txt"),ab_file)
   saveFile <- gsub(" ","_",saveFile)
   write.table(mydf,saveFile,append = F,quote = F,sep = "\t",row.names = F,col.names = F)
