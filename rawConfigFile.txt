@@ -1,5 +1,5 @@
-qc_list	"Ctrl_BCCmix1,Ctrl_BCCmix1_"	"Ctrl_BCCmix2,Ctrl_BCCmix2_"	"Ctrl_NCImix1,Ctrl_NCImix1_"	"Ctrl_NCImix2,Ctrl_NCImix2_"	"Ctrl_Cellmix1,Ctrl_Cellmix1_2_"	"Ctrl_Cellmix2,Ctrl_Cellmix2_2_"	"Cal_1_HP100,Cal_1_HP100_"	"Cal_2_HP100,Cal_2_HP100_"	"Cal_1_JC100,Cal_1_JC100_"	"Cal_2_JC100,Cal_2_JC100_"	"Ctrl_mTissueMix1,Ctrl_mTissueMix1_"	"Ctrl_mTissueMix2,Ctrl_mTissueMix2_"	"Ctrl_Buffer1,Ctrl_Buffer1_"	"Ctrl_Buffer2,Ctrl_Buffer2_"
-pi_qc_list	"BCCmix,Ctrl_BCCmix1_"	"NCImix,Ctrl_NCImix1_"	"Ctrl_Cellmix_2,Ctrl_Cellmix1_2_"	"HP100,Cal_1_HP100_"	"JC100,Cal_1_JC100_"	"mTissueMix,Ctrl_mTissueMix1_"	"Ctrl_Buffer,Ctrl_Buffer1_"
+qc_list	"Ctrl_BCCmix1,Ctrl_BCCmix1_"	"Ctrl_BCCmix2,Ctrl_BCCmix2_"	"Ctrl_NCImix1,Ctrl_NCImix1_"	"Ctrl_NCImix2,Ctrl_NCImix2_"	"Ctrl_Cellmix1,Ctrl_Cellmix1_"	"Ctrl_Cellmix2,Ctrl_Cellmix2_"	"Cal_1_HP100,Cal_1_HP100_"	"Cal_2_HP100,Cal_2_HP100_"	"Cal_1_JC100,Cal_1_JC100_"	"Cal_2_JC100,Cal_2_JC100_"	"Ctrl_mTissueMix1,Ctrl_mTissueMix1_"	"Ctrl_mTissueMix2,Ctrl_mTissueMix2_"	"Ctrl_Buffer1,Ctrl_Buffer1_"	"Ctrl_Buffer2,Ctrl_Buffer2_"
+pi_qc_list	"BCCmix,Ctrl_BCCmix1_"	"NCImix,Ctrl_NCImix1_"	"Cellmix,Ctrl_Cellmix1_"	"HP100,Cal_1_HP100_"	"JC100,Cal_1_JC100_"	"mTissueMix,Ctrl_mTissueMix1_"	"Buffer,Ctrl_Buffer1_"
 pi_list	AM	AMM	CS	DCBL	KK	LB	LZ	MH	NA	NP	RR	TF	TL	WCL	Cal	Ctrl
 mouse_pi_list	AM	AMM	CS	DCBL	KK	MH	WCL
 cellmix	"Cellmix1,Ctrl_Cellmix1_"	"Cellmix2,Ctrl_Cellmix2_"
