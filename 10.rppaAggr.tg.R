@@ -54,7 +54,22 @@ rppaTool <- function(inputFile,
         mycols1 <- c("AB_ID","AB_name","AB_species","Slide_file","Gene_ID", "Swiss_ID")
         mycols2 <- setdiff(names(rawdf), mycols1)
         rawdf <- rawdf[, c(mycols1, mycols2)]
-        writeData(wb,sheetName,rawdf,rowNames = FALSE)
+        
+        tempdf <- rawdf
+        writeData(wb, sheetName, rbind(names(tempdf), tempdf[1,]), startRow = 1, rowNames = F, colNames = F)
+        
+        tempdf <- tempdf[-1,]
+        tempdf[7:ncol(tempdf)] <- sapply(tempdf[7:ncol(tempdf)],as.numeric)
+        writeData(wb, sheetName, tempdf, startRow = 3, rowNames = F, colNames = F)
+        
+        # formatting all numeric cells
+        addStyle(wb = wb,
+                 sheet = sheetName,
+                 style = createStyle(numFmt = "0.00"),
+                 cols = 7:ncol(rawdf),
+                 rows = 3:(nrow(rawdf)+1),
+                 gridExpand = T)
+        
         # bold the first column
         addStyle(wb = wb,
                  sheet = sheetName,
@@ -229,23 +244,22 @@ rppaTool <- function(inputFile,
   }
   
   fixQIsheets <- function(wb, sheetName) {
-    rawdf <- readWorkbook(wb, sheet = sheetName, colNames = F)
+    rawdf <- readWorkbook(wb, sheet = sheetName, colNames = T)
     
-    if (nrow(rawdf) > 1) { # if there is at least one row of QI data
+    if (nrow(rawdf) > 0) { # if there is at least one row of QI data
       # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
       rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
       
       # removing trailing characters other than antibody name
       # adding antibody species column
-      rawdf$X2 <- gsub("_V$|_$","", rawdf$X2)
+      rawdf$AB_name <- gsub("_V$|_$","", rawdf$AB_name)
       
       AB_species <- rep("",nrow(rawdf))
-      AB_species[1] <- "AB_species"
-      AB_species[grepl("_R$", rawdf$X2)] <- "rabbit"
-      AB_species[grepl("_M$", rawdf$X2)] <- "mouse"
+      AB_species[grepl("_R$", rawdf$AB_name)] <- "rabbit"
+      AB_species[grepl("_M$", rawdf$AB_name)] <- "mouse"
       
-      rawdf$X2 <- gsub("_R$","",rawdf$X2)
-      rawdf$X2 <- gsub("_M$","",rawdf$X2)
+      rawdf$AB_name <- gsub("_R$","",rawdf$AB_name)
+      rawdf$AB_name <- gsub("_M$","",rawdf$AB_name)
       
       # trimming any trailing whitespaces from antibody IDs, antibody names and gene symbols
       rawdf[,c(1:5)] <- apply(rawdf[,c(1:5)], 2, trimws)
@@ -253,7 +267,15 @@ rppaTool <- function(inputFile,
       rawdf$AB_species <- AB_species
       rawdf <- rawdf[, c(1,2,ncol(rawdf),3:(ncol(rawdf)-1))]
       
-      writeData(wb, sheetName, rawdf, rowNames = F, colNames = F)
+      writeData(wb, sheetName, rawdf, rowNames = F, colNames = T)
+      
+      # formatting all numeric cells
+      addStyle(wb = wb,
+               sheet = sheetName,
+               style = createStyle(numFmt = "0.00"),
+               cols = 7:ncol(rawdf),
+               rows = 2:(nrow(rawdf)),
+               gridExpand = T)
       
       # bold the first column
       addStyle(wb = wb,
