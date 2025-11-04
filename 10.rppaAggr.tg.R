@@ -16,7 +16,8 @@ rppaTool <- function(inputFile,
                        sampleIDRow,
                        replace.cvcutoff = NULL,
                        replace.na = NULL) {
-    mydf <- read.xlsx(inputFile, sheet = sheetName)
+    #mydf <- read.xlsx(inputFile, sheet = sheetName)
+    mydf <- read_excel(path = inputFile, sheet = sheetName, .name_repair = function(x){ gsub(" ", "", x) } )
     
     if (nrow(mydf) <= 1) { # if there is no normalized data
       addWorksheet(wb,paste0(sheetName,"_Median"))
@@ -59,7 +60,7 @@ rppaTool <- function(inputFile,
         writeData(wb, sheetName, rbind(names(tempdf), tempdf[1,]), startRow = 1, rowNames = F, colNames = F)
         
         tempdf <- tempdf[-1,]
-        tempdf[7:ncol(tempdf)] <- sapply(tempdf[7:ncol(tempdf)],as.numeric)
+        tempdf[7:ncol(tempdf)] <- sapply(tempdf[7:ncol(tempdf)],as.numeric, simplify = F)
         writeData(wb, sheetName, tempdf, startRow = 3, rowNames = F, colNames = F)
         
         # formatting all numeric cells
@@ -129,7 +130,7 @@ rppaTool <- function(inputFile,
       
       mydf$AB_name <- makeUniqueNames(IDs = mydf$AB_ID, names = mydf$AB_name)
       
-      mydf[,-c(1:3)] <- sapply(mydf[,-c(1:3)], as.numeric)
+      mydf[,-c(1:3)] <- sapply(mydf[,-c(1:3)], as.numeric, simplify = F)
       
       if (!(is.null(replace.na))) {
         mydf[,-c(1:3)][is.na(mydf[,-c(1:3)])] <- replace.na
